@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "NameTrace",
+  "version": "0.1.0",
+  "description": "Hover any character name on a Wikipedia article to see their full name and the sentence they were first introduced in.",
+  "content_scripts": [
+    {
+      "matches": ["*://*.wikipedia.org/wiki/*"],
+      "js": [
+        "src/constants.js",
+        "src/detect.js",
+        "src/cast.js",
+        "src/resolve.js",
+        "src/wrap.js",
+        "src/tooltip.js",
+        "src/content.js"
+      ],
+      "css": ["styles/tooltip.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

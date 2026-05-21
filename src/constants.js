@@ -1,0 +1,35 @@
+window.NT = window.NT || {};
+
+NT.constants = {
+  ACTIVATION_MIN_OCCURRENCES: 5,
+  FALLBACK_MIN_OCCURRENCES: 3,
+  MAX_NGRAM: 3,
+  TOOLTIP_SHOW_DELAY_MS: 80,
+  TOOLTIP_HIDE_DELAY_MS: 120,
+  SECTION_HEADING_RE: /cast|characters|voice cast|principal cast/i,
+  STOPWORDS: new Set([
+    "The", "A", "An", "And", "Or", "But", "If", "As", "At", "By", "For", "In", "Of", "On", "To", "Up", "Is",
+    "It", "He", "She", "They", "We", "I", "You", "His", "Her", "Their", "Our", "My", "Your", "Its",
+    "This", "That", "These", "Those", "There", "Here", "Then", "Now", "When", "Where", "What", "Why", "How", "Who",
+    "After", "Before", "During", "While", "Since", "Until", "Although", "Though", "Because", "However",
+    "Meanwhile", "Later", "Soon", "Suddenly", "Eventually", "Finally", "First", "Next", "Once",
+    "January", "February", "March", "April", "May", "June", "July", "August",
+    "September", "October", "November", "December",
+    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+    "Wikipedia", "English", "American", "British", "French", "German", "Russian", "Chinese",
+    "Japanese", "Italian", "Spanish", "European", "African", "Asian",
+    "United", "States", "America", "Britain", "England", "Europe", "Asia", "Africa",
+    "London", "Paris", "York", "Hollywood", "California",
+    "Plot", "Cast", "Synopsis", "Story", "Summary", "Characters",
+    "Production", "Reception", "Release", "Music", "Soundtrack", "References", "Notes",
+    "Mr", "Mrs", "Ms", "Dr", "Sir", "Lord", "Lady", "King", "Queen", "Prince", "Princess",
+    "Don", "Father", "Mother", "Sister", "Brother", "Uncle", "Aunt", "Cousin",
+    "Captain", "Lieutenant", "Sergeant", "Colonel", "Major", "General", "Admiral",
+    "President", "Senator", "Officer", "Detective", "Inspector", "Agent",
+    "Professor", "Reverend", "Saint", "God", "Doctor", "Mister",
+    "Jr", "Sr",
+    "Day", "Night", "Morning", "Evening", "Afternoon",
+    "Christmas", "Halloween", "Easter", "Thanksgiving",
+    "Earth", "Mars", "Sun", "Moon",
+  ])
+};

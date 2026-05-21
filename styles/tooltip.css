@@ -1,0 +1,41 @@
+#nt-tooltip {
+  position: absolute;
+  z-index: 2147483647;
+  max-width: 360px;
+  background: #1f1f1f;
+  color: #f5f5f5;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  text-align: left;
+  white-space: normal;
+}
+
+#nt-tooltip .nt-full {
+  font-weight: 600;
+  margin-bottom: 4px;
+  letter-spacing: 0.1px;
+}
+
+#nt-tooltip .nt-first {
+  font-weight: 400;
+  color: #d4d4d4;
+  font-size: 12px;
+  font-style: italic;
+}
+
+#nt-tooltip[hidden] {
+  display: none;
+}
+
+/* .nt-name intentionally has no visible styling — names should look unchanged */
+.nt-name {
+  background: transparent;
+  border: 0;
+  text-decoration: inherit;
+  color: inherit;
+}
