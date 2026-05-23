@@ -223,6 +223,13 @@ window.NT = window.NT || {};
     return new RegExp(`(?<![\\p{L}\\d])(${alt})(?![\\p{L}\\d])`, "gu");
   }
 
+  // Strip Wikipedia-style inline citation/note markers like "[4]", "[a]",
+  // "[note 1]" — and collapse the whitespace they leave behind — so the
+  // sentence segmenter doesn't split on the bracket and leave a stray "[".
+  function stripCitations(s) {
+    return s.replace(/\[[^\]]{1,15}\]/g, "").replace(/\s{2,}/g, " ");
+  }
+
   function captureFirstMentions(root, entities, aliasMap) {
     const re = buildAliasRegex(aliasMap);
     if (!re) return;
@@ -235,7 +242,7 @@ window.NT = window.NT || {};
     const seen = new Set();
     for (const p of paragraphs) {
       if (seen.size === entities.size) break;
-      const text = (p.textContent || "").trim();
+      const text = stripCitations((p.textContent || "").trim());
       if (!text) continue;
       re.lastIndex = 0;
       if (!re.test(text)) continue;
