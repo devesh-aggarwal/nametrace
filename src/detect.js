@@ -3,35 +3,11 @@ window.NT = window.NT || {};
 (function () {
   const { MAX_NGRAM, STOPWORDS } = NT.constants;
 
-  const SKIP_SELECTOR = [
-    "table",
-    ".infobox",
-    ".navbox",
-    ".sidebar",
-    ".reference",
-    ".references",
-    ".reflist",
-    ".mw-editsection",
-    ".hatnote",
-    ".thumb",
-    ".thumbcaption",
-    ".mw-empty-elt",
-    ".navigation-not-searchable",
-    "sup.reference",
-    "style",
-    "script",
-    ".toc",
-    "#toc",
-    ".mw-jump-link",
-    ".plainlinks",
-    ".metadata",
-  ].join(",");
+  const SKIP_SELECTOR = NT.site.config.skipSelector;
 
   function getArticleBody() {
-    return (
-      document.querySelector("#mw-content-text .mw-parser-output") ||
-      document.querySelector("#mw-content-text")
-    );
+    const sel = NT.site.config.bodySelector;
+    return typeof sel === "function" ? sel() : document.querySelector(sel);
   }
 
   function isSkipped(node, root) {
@@ -56,10 +32,23 @@ window.NT = window.NT || {};
   }
 
   const CAP_TOKEN_RE = /^[A-Z][\p{L}'’\-]*$/u;
-  const WORD_OR_PUNCT_RE = /[\p{L}'’\-]+|[.!?]/gu;
+  // Capture word-like tokens plus every non-whitespace character. Anything
+  // that isn't a word-like token (comma, colon, em-dash, quote, paren, etc.)
+  // should flush the capitalized run — capitalized words on either side of
+  // those separators are unrelated entities.
+  const WORD_OR_PUNCT_RE = /[\p{L}'’\-]+|\S/gu;
+  const TRAILING_POSSESSIVE_RE = /['’]s?$/;
+
+  const LOWER_WORD_RE = /^[a-z][\p{L}'’\-]*$/u;
 
   function harvestNgrams(root) {
     const counts = new Map();
+    // Track lowercase forms of word-like tokens. If a token appears as a
+    // regular lowercase word in the article body, it's a common noun
+    // ("intelligence", "house", "council") — not a proper name. The alias
+    // builder uses this to filter institutional entities like
+    // "Central Intelligence" or "White House".
+    const lowerCounts = new Map();
     for (const node of iterTextNodes(root)) {
       const text = node.nodeValue;
       const tokens = text.match(WORD_OR_PUNCT_RE) || [];
@@ -79,37 +68,46 @@ window.NT = window.NT || {};
       };
 
       for (const tok of tokens) {
-        if (/^[.!?]$/.test(tok)) {
-          flush();
-          continue;
-        }
-        if (CAP_TOKEN_RE.test(tok)) {
-          run.push(tok);
+        // Strip trailing possessive: "Khalil's" → "Khalil", "Achilles'" → "Achilles".
+        // Without this, "Mahmoud Khalil's" becomes a distinct multi-token ngram
+        // and "Khalil's" / "Khalil" are counted as different surnames.
+        const normalized = tok.replace(TRAILING_POSSESSIVE_RE, "");
+        if (normalized && CAP_TOKEN_RE.test(normalized)) {
+          run.push(normalized);
         } else {
           flush();
+          if (
+            normalized &&
+            normalized.length >= 3 &&
+            LOWER_WORD_RE.test(normalized)
+          ) {
+            lowerCounts.set(
+              normalized,
+              (lowerCounts.get(normalized) || 0) + 1
+            );
+          }
         }
       }
       flush();
     }
-    return counts;
+    return { counts, lowerCounts };
   }
 
   function topActivationCount(counts) {
-    let top = 0;
+    let topMulti = 0;
     for (const [ng, c] of counts) {
       if (!ng.includes(" ")) continue;
       const toks = ng.split(" ");
       if (toks.some((t) => STOPWORDS.has(t))) continue;
-      if (c > top) top = c;
+      if (c > topMulti) topMulti = c;
     }
-    if (top === 0) {
-      for (const [ng, c] of counts) {
-        if (ng.includes(" ")) continue;
-        if (STOPWORDS.has(ng)) continue;
-        if (c > top) top = c;
-      }
+    let topSingle = 0;
+    for (const [ng, c] of counts) {
+      if (ng.includes(" ")) continue;
+      if (STOPWORDS.has(ng)) continue;
+      if (c > topSingle) topSingle = c;
     }
-    return top;
+    return Math.max(topMulti, topSingle);
   }
 
   NT.detect = {

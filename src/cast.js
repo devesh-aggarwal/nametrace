@@ -110,6 +110,7 @@ window.NT = window.NT || {};
   }
 
   function harvestCast() {
+    if (!NT.site.config.castEnabled) return [];
     const sections = findCastSections();
     const all = [];
     for (const heading of sections) {

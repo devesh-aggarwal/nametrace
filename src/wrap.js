@@ -30,38 +30,45 @@ window.NT = window.NT || {};
     if (!re) return;
     const nodes = [...iterWrapTextNodes(root)];
     for (const node of nodes) {
-      const text = node.nodeValue;
-      re.lastIndex = 0;
-      if (!re.test(text)) continue;
-      re.lastIndex = 0;
+      try {
+        // React hydration can detach text nodes we collected. Skip those
+        // rather than throwing — otherwise the rest of the loop is abandoned.
+        if (!node.isConnected || !node.parentNode) continue;
+        const text = node.nodeValue;
+        re.lastIndex = 0;
+        if (!re.test(text)) continue;
+        re.lastIndex = 0;
 
-      const frag = document.createDocumentFragment();
-      let lastIdx = 0;
-      let m;
-      while ((m = re.exec(text)) !== null) {
-        const start = m.index;
-        const end = start + m[0].length;
-        if (start > lastIdx) {
-          frag.appendChild(
-            document.createTextNode(text.slice(lastIdx, start))
-          );
+        const frag = document.createDocumentFragment();
+        let lastIdx = 0;
+        let m;
+        while ((m = re.exec(text)) !== null) {
+          const start = m.index;
+          const end = start + m[0].length;
+          if (start > lastIdx) {
+            frag.appendChild(
+              document.createTextNode(text.slice(lastIdx, start))
+            );
+          }
+          const ent = aliasMap.get(m[1]);
+          if (!ent) {
+            frag.appendChild(document.createTextNode(m[0]));
+          } else {
+            const span = document.createElement("span");
+            span.className = "nt-name";
+            span.dataset.entity = ent.slug;
+            span.textContent = m[0];
+            frag.appendChild(span);
+          }
+          lastIdx = end;
         }
-        const ent = aliasMap.get(m[1]);
-        if (!ent) {
-          frag.appendChild(document.createTextNode(m[0]));
-        } else {
-          const span = document.createElement("span");
-          span.className = "nt-name";
-          span.dataset.entity = ent.slug;
-          span.textContent = m[0];
-          frag.appendChild(span);
+        if (lastIdx < text.length) {
+          frag.appendChild(document.createTextNode(text.slice(lastIdx)));
         }
-        lastIdx = end;
+        node.parentNode.replaceChild(frag, node);
+      } catch (_) {
+        // Defensive — one bad node should not abort the whole pass.
       }
-      if (lastIdx < text.length) {
-        frag.appendChild(document.createTextNode(text.slice(lastIdx)));
-      }
-      node.parentNode.replaceChild(frag, node);
     }
   }
 
