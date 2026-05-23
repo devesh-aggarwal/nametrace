@@ -1,7 +1,14 @@
 window.NT = window.NT || {};
 
 (function () {
-  const { FALLBACK_MIN_OCCURRENCES, STOPWORDS } = NT.constants;
+  const {
+    FALLBACK_MIN_OCCURRENCES,
+    NEWS_SURNAME_MIN_OCCURRENCES,
+    SINGLE_TOKEN_MIN_OCCURRENCES,
+    LOWER_COMMON_NOUN_MIN,
+    SPURIOUS_NON_LAST_RATIO,
+    STOPWORDS,
+  } = NT.constants;
 
   const NAME_TOKEN_RE = /^[A-Z][\p{L}'’\-]*$/u;
 
@@ -21,7 +28,6 @@ window.NT = window.NT || {};
 
   function build(castNames, ngramCounts, lowerCounts) {
     const entities = new Map(); // slug -> entity
-    const LOWER_COMMON_NOUN_MIN = 2; // appears as lowercase word at least N times → common noun
 
     const isCommonNounComposite = (ng) => {
       if (!lowerCounts) return false;
@@ -84,7 +90,7 @@ window.NT = window.NT || {};
       // News-path threshold is lower than direct-path because we only need
       // ONE reuse of the surname to justify wiring up the tooltip — e.g.
       // "Zach Kahler" introduced once, then "Mr. Kahler" mentioned twice.
-      if (lastCount < 2) continue;
+      if (lastCount < NEWS_SURNAME_MIN_OCCURRENCES) continue;
       // Reject ngrams where a non-last token appears standalone far more
       // often than the full phrase itself. A real first name tokenizes
       // adjacent to the surname; "National" / "Intelligence" / etc. show
@@ -93,7 +99,10 @@ window.NT = window.NT || {};
       let spurious = false;
       for (let i = 0; i < toks.length - 1; i++) {
         const tCount = ngramCounts.get(toks[i]) || 0;
-        if (tCount > c * 2 && tCount >= FALLBACK_MIN_OCCURRENCES) {
+        if (
+          tCount > c * SPURIOUS_NON_LAST_RATIO &&
+          tCount >= FALLBACK_MIN_OCCURRENCES
+        ) {
           spurious = true;
           break;
         }
@@ -141,7 +150,6 @@ window.NT = window.NT || {};
     // because the full name never appears (e.g. "Trump" / "President Trump"
     // where "President" is filtered as a stopword). Only promote if no
     // existing entity already claims this token as part of its canonical.
-    const SINGLE_TOKEN_MIN = 5;
     const claimedTokens = new Set();
     for (const ent of entities.values()) {
       for (const t of ent.canonical.split(/\s+/)) {
@@ -150,7 +158,7 @@ window.NT = window.NT || {};
     }
     for (const [ng, c] of ngramCounts) {
       if (ng.includes(" ")) continue;
-      if (c < SINGLE_TOKEN_MIN) continue;
+      if (c < SINGLE_TOKEN_MIN_OCCURRENCES) continue;
       if (ng.length < 3) continue;
       if (STOPWORDS.has(ng)) continue;
       if (!NAME_TOKEN_RE.test(ng)) continue;

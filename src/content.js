@@ -1,15 +1,43 @@
 (function () {
-  // Version stamp so the page world can verify which build is running.
-  // Bump this whenever content.js changes meaningfully.
-  document.documentElement.setAttribute("data-nt-build", "2026-05-22-single-token-v8");
+  // Debug toggle: opt-in via `localStorage.setItem("NT_DEBUG", "1")`.
+  // When on, the extension exposes diagnostic state on <html> and a custom
+  // event listener that the page world can use to introspect and trigger
+  // a manual re-wrap. Off by default to avoid leaking entity lists and
+  // exposing a re-wrap event handler to arbitrary pages.
+  const DEBUG = (() => {
+    try {
+      return localStorage.getItem("NT_DEBUG") === "1";
+    } catch (_) {
+      return false;
+    }
+  })();
+  const BUILD_TAG = "nametrace-content-script";
 
   function observeForLateRenders(body, aliasMap) {
+    const {
+      REWRAP_DEBOUNCE_MS,
+      REWRAP_SAFETY_DELAYS_MS,
+      REWRAP_MAX_PASSES,
+    } = NT.constants;
+
+    let rewrapPasses = 0;
+    let observerDisconnected = false;
+
     const fullRewrap = () => {
+      if (rewrapPasses >= REWRAP_MAX_PASSES) {
+        if (!observerDisconnected) {
+          obs.disconnect();
+          observerDisconnected = true;
+        }
+        return;
+      }
+      rewrapPasses++;
       try {
         const cur = NT.detect.getArticleBody() || body;
         if (cur) NT.wrap.wrapMentions(cur, aliasMap);
       } catch (_) {}
     };
+
     // Any mutation under the document body triggers a debounced full re-wrap
     // of the article body. The wrap function is idempotent — it skips text
     // already inside .nt-name spans — so re-running is safe. This catches
@@ -17,8 +45,9 @@
     // changes, element re-mounts) without needing to enumerate them.
     let rewrapTimer = null;
     const scheduleRewrap = () => {
+      if (observerDisconnected || rewrapPasses >= REWRAP_MAX_PASSES) return;
       clearTimeout(rewrapTimer);
-      rewrapTimer = setTimeout(fullRewrap, 300);
+      rewrapTimer = setTimeout(fullRewrap, REWRAP_DEBOUNCE_MS);
     };
     const obs = new MutationObserver((mutations) => {
       // Cheap filter: ignore mutations that are entirely self-caused
@@ -48,9 +77,9 @@
     });
     // Belt-and-suspenders: scheduled re-wraps in case mutations fire before
     // the initial run completes, or stop firing before the page is stable.
-    setTimeout(fullRewrap, 500);
-    setTimeout(fullRewrap, 2000);
-    setTimeout(fullRewrap, 5000);
+    for (const delay of REWRAP_SAFETY_DELAYS_MS) {
+      setTimeout(fullRewrap, delay);
+    }
   }
 
   function run() {
@@ -86,29 +115,30 @@
       NT.wrap.wrapMentions(body, aliasMap);
     } catch (_) {}
 
-    // Debug exposure: expose alias keys and a manual rewrap trigger so the
-    // page world can interrogate without context-switching DevTools.
-    document.documentElement.setAttribute(
-      "data-nt-aliases",
-      JSON.stringify([...aliasMap.keys()])
-    );
-    document.addEventListener("__nt-force-rewrap", () => {
-      try {
-        const cur = NT.detect.getArticleBody() || body;
-        const before = document.querySelectorAll("span.nt-name").length;
-        NT.wrap.wrapMentions(cur, aliasMap);
-        const after = document.querySelectorAll("span.nt-name").length;
-        document.documentElement.setAttribute(
-          "data-nt-force-result",
-          JSON.stringify({ before, after, bodyTag: cur && cur.tagName })
-        );
-      } catch (e) {
-        document.documentElement.setAttribute(
-          "data-nt-force-result",
-          "error: " + e.message
-        );
-      }
-    });
+    if (DEBUG) {
+      document.documentElement.setAttribute("data-nt-build", BUILD_TAG);
+      document.documentElement.setAttribute(
+        "data-nt-aliases",
+        JSON.stringify([...aliasMap.keys()])
+      );
+      document.addEventListener("__nt-force-rewrap", () => {
+        try {
+          const cur = NT.detect.getArticleBody() || body;
+          const before = document.querySelectorAll("span.nt-name").length;
+          NT.wrap.wrapMentions(cur, aliasMap);
+          const after = document.querySelectorAll("span.nt-name").length;
+          document.documentElement.setAttribute(
+            "data-nt-force-result",
+            JSON.stringify({ before, after, bodyTag: cur && cur.tagName })
+          );
+        } catch (e) {
+          document.documentElement.setAttribute(
+            "data-nt-force-result",
+            "error: " + e.message
+          );
+        }
+      });
+    }
   }
 
   if (document.readyState === "loading") {

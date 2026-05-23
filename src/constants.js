@@ -3,9 +3,26 @@ window.NT = window.NT || {};
 NT.constants = {
   ACTIVATION_MIN_OCCURRENCES: 5,
   FALLBACK_MIN_OCCURRENCES: 3,
+  // News-path: lowest surname-reuse count that still warrants promoting a
+  // single-mention full name (e.g. "Zach Kahler" intro + 2 "Mr. Kahler").
+  NEWS_SURNAME_MIN_OCCURRENCES: 2,
+  // Single-token-path: surname must appear at least this often standalone
+  // to be promoted as its own entity when no multi-token full name exists
+  // (e.g. articles that only say "Trump").
+  SINGLE_TOKEN_MIN_OCCURRENCES: 5,
+  // Common-noun filter: if a token appears as a lowercase word this many
+  // times in the body, it's a common noun, not a name.
+  LOWER_COMMON_NOUN_MIN: 2,
+  // News-path spurious-token filter: drop ngrams where a non-last token
+  // appears standalone more than this multiple of the ngram's own count.
+  SPURIOUS_NON_LAST_RATIO: 2,
   MAX_NGRAM: 3,
   TOOLTIP_SHOW_DELAY_MS: 80,
   TOOLTIP_HIDE_DELAY_MS: 120,
+  // MutationObserver re-wrap pacing.
+  REWRAP_DEBOUNCE_MS: 300,
+  REWRAP_SAFETY_DELAYS_MS: [500, 2000, 5000],
+  REWRAP_MAX_PASSES: 30,
   SECTION_HEADING_RE: /cast|characters|voice cast|principal cast/i,
   // Universal noise + a few Wikipedia-flavor section words ("Plot", "Cast", ...).
   // The latter are harmless on news sites, kept here for simplicity.
