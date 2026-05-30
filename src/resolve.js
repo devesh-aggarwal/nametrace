@@ -230,6 +230,52 @@ window.NT = window.NT || {};
     return s.replace(/\[[^\]]{1,15}\]/g, "").replace(/\s{2,}/g, " ");
   }
 
+  // Common abbreviations whose trailing period is NOT a sentence end. Stored
+  // lower-cased and without the trailing dot. Names are especially prone to
+  // these (titles like "Mr."/"Dr.", saints' names like "St.", and middle
+  // initials), so both the Intl.Segmenter and the regex fallback otherwise
+  // split a single sentence — and a single name — into pieces.
+  const ABBREVIATIONS = new Set([
+    "mr", "mrs", "ms", "mx", "dr", "prof", "st", "sr", "jr", "rev", "fr",
+    "hon", "pres", "gen", "sen", "rep", "gov", "lt", "col", "sgt", "capt",
+    "maj", "adm", "messrs", "esq", "mt", "ft", "vs", "etc", "al", "cf",
+    "inc", "ltd", "co", "corp", "dept", "univ", "no", "vol", "pp", "fig",
+    "ca", "approx", "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep",
+    "sept", "oct", "nov", "dec",
+  ]);
+
+  // True when the trailing "." of `s` belongs to an abbreviation or initial
+  // rather than a genuine sentence end, meaning `s` should be re-joined with
+  // the following segment.
+  function endsWithAbbreviation(s) {
+    const t = s.trimEnd();
+    if (!t.endsWith(".")) return false;
+    // Dotted acronyms/initialisms: "U.S.", "U.K.", "e.g.", "i.e.", "a.m.".
+    if (/(?:^|[^\p{L}])(?:\p{L}\.){2,}$/u.test(t)) return true;
+    // A lone capital-letter initial, e.g. the "L." in "Samuel L. Jackson".
+    if (/(?:^|[^\p{L}])\p{Lu}\.$/u.test(t)) return true;
+    // A known abbreviation word like "Mr." / "Dr." / "etc.".
+    const m = t.match(/(\p{L}+)\.$/u);
+    return !!m && ABBREVIATIONS.has(m[1].toLowerCase());
+  }
+
+  // Re-join segments that were split inside an abbreviation. We err toward
+  // joining: for a first-mention tooltip, occasionally merging two real
+  // sentences is far less harmful than truncating one mid-name.
+  function mergeAbbreviatedSentences(sentences) {
+    const out = [];
+    for (const s of sentences) {
+      if (out.length && endsWithAbbreviation(out[out.length - 1])) {
+        const prev = out[out.length - 1];
+        const sep = /\s$/.test(prev) || /^\s/.test(s) ? "" : " ";
+        out[out.length - 1] = prev + sep + s;
+      } else {
+        out.push(s);
+      }
+    }
+    return out;
+  }
+
   function captureFirstMentions(root, entities, aliasMap) {
     const re = buildAliasRegex(aliasMap);
     if (!re) return;
@@ -253,6 +299,7 @@ window.NT = window.NT || {};
       } else {
         sentences = text.split(/(?<=[.!?])\s+/);
       }
+      sentences = mergeAbbreviatedSentences(sentences);
       for (const sent of sentences) {
         re.lastIndex = 0;
         let m;
