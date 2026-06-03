@@ -63,7 +63,7 @@ NT.constants = {
     // Political bodies and institutional terms.
     "Senate", "Congress", "Republicans", "Democrats", "Republican", "Democrat",
     "Senators", "Lawmakers", "Officials", "Government", "Administration",
-    "Department", "Bureau", "Agency", "Court", "Council", "Committee",
+    "Department", "Justice", "Bureau", "Agency", "Court", "Council", "Committee",
     "Cabinet", "Pentagon", "Capitol",
     "National", "Federal", "Intelligence", "Defense", "Security", "Treasury",
     "Foreign", "Domestic",
