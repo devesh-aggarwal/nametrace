@@ -32,10 +32,17 @@
   display: none;
 }
 
-/* .nt-name intentionally has no visible styling — names should look unchanged */
+/* .nt-name intentionally has no visible styling — names should look unchanged.
+   Every typographic property is pinned to inherit (with !important) so a wrapped
+   name renders identically to the surrounding text even when the host page sets
+   font-weight/style/size on spans. Without this, e.g. a name inside a bold
+   <strong> lead-in loses its weight if the host has any `span { font-weight }`
+   rule, since our span would otherwise leave that property uncontested. */
 .nt-name {
   background: transparent;
   border: 0;
-  text-decoration: inherit;
-  color: inherit;
+  font: inherit !important;
+  color: inherit !important;
+  text-decoration: inherit !important;
+  letter-spacing: inherit !important;
 }
