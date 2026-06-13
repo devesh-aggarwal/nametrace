@@ -23,6 +23,8 @@ window.NT = window.NT || {};
     ".mw-jump-link",
     ".plainlinks",
     ".metadata",
+    "svg",
+    "math",
   ].join(",");
 
   const DEFAULT_SKIP = [
@@ -59,6 +61,10 @@ window.NT = window.NT || {};
     "style",
     "script",
     "noscript",
+    // Charts and formulas: their labels aren't prose, and wrapping text
+    // inside foreign-namespace content breaks rendering (e.g. SVG legends).
+    "svg",
+    "math",
   ].join(",");
 
   function findGenericArticleBody() {
