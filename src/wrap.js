@@ -13,10 +13,17 @@ window.NT = window.NT || {};
     return false;
   }
 
+  const HTML_NS = "http://www.w3.org/1999/xhtml";
+
   function* iterWrapTextNodes(root) {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode(n) {
         if (!n.nodeValue || !n.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+        // An HTML <span> is invalid inside foreign-namespace content (SVG
+        // <text>, MathML) — the browser silently renders nothing, blanking
+        // e.g. chart legend labels.
+        if (!n.parentElement || n.parentElement.namespaceURI !== HTML_NS)
+          return NodeFilter.FILTER_REJECT;
         if (isInsideSkippedOrWrapped(n, root)) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       },
