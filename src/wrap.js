@@ -15,6 +15,28 @@ window.NT = window.NT || {};
 
   const HTML_NS = "http://www.w3.org/1999/xhtml";
 
+  // In a flex/grid container, every contiguous text run and every element
+  // child becomes its own anonymous item whose leading/trailing whitespace is
+  // stripped. Splitting a text node into [text, span, ...] siblings there drops
+  // the spaces adjacent to our spans — e.g. a "Get started with Jira" button
+  // renders "Get started withJira". When the parent is such a container we nest
+  // the whole replacement inside one inline wrapper so it stays a single item
+  // and the internal spaces are preserved.
+  function isFlexOrGridContainer(el) {
+    if (!el || el.nodeType !== Node.ELEMENT_NODE) return false;
+    try {
+      const d = getComputedStyle(el).display;
+      return (
+        d === "flex" ||
+        d === "inline-flex" ||
+        d === "grid" ||
+        d === "inline-grid"
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
   function* iterWrapTextNodes(root) {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode(n) {
@@ -72,7 +94,15 @@ window.NT = window.NT || {};
         if (lastIdx < text.length) {
           frag.appendChild(document.createTextNode(text.slice(lastIdx)));
         }
-        node.parentNode.replaceChild(frag, node);
+        const parent = node.parentNode;
+        if (isFlexOrGridContainer(parent)) {
+          const wrapper = document.createElement("span");
+          wrapper.className = "nt-frag";
+          wrapper.appendChild(frag);
+          parent.replaceChild(wrapper, node);
+        } else {
+          parent.replaceChild(frag, node);
+        }
       } catch (_) {
         // Defensive — one bad node should not abort the whole pass.
       }

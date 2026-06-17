@@ -38,7 +38,8 @@
    font-weight/style/size on spans. Without this, e.g. a name inside a bold
    <strong> lead-in loses its weight if the host has any `span { font-weight }`
    rule, since our span would otherwise leave that property uncontested. */
-.nt-name {
+.nt-name,
+.nt-frag {
   background: transparent;
   border: 0;
   font: inherit !important;
