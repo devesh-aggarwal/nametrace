@@ -74,6 +74,11 @@ window.NT = window.NT || {};
         const normalized = tok.replace(TRAILING_POSSESSIVE_RE, "");
         if (normalized && CAP_TOKEN_RE.test(normalized)) {
           run.push(normalized);
+        } else if (tok === "." && /^[A-Z]$/.test(run[run.length - 1])) {
+          // Middle-initial period, e.g. the "." in "Samuel L. Jackson" —
+          // transparent to the run so it continues into the next
+          // capitalized token(s) instead of splitting the name in two.
+          // The period itself is not added to the run.
         } else {
           flush();
           if (
