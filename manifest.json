@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "NameTrace",
-  "version": "2.1.3",
+  "version": "2.1.4",
   "description": "Hover any name on an article (Wikipedia, news, blogs) to see their full name and the sentence they were first introduced in.",
   "icons": {
     "16": "icons/icon-16.png",
