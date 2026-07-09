@@ -83,6 +83,25 @@ test("sentence-final capitalized word still flushes the run", () => {
   assert.strictEqual(counts.has("Bush Bush"), false);
 });
 
+test("tight abbreviation 'U.S.' does not merge into the following capitalized word", () => {
+  const counts = harvest([
+    "U.S. Officials said the plan was approved.",
+    "The U.S. Officials later confirmed the report.",
+  ]);
+  assert.strictEqual(counts.has("U S"), false);
+  assert.strictEqual(counts.has("S Officials"), false);
+  assert.strictEqual(counts.has("U S Officials"), false);
+});
+
+test("tight abbreviations 'U.K.' and 'E.U.' do not merge into a following name", () => {
+  const counts = harvest([
+    "The U.K. Prime Minister met the E.U. Council today.",
+  ]);
+  assert.strictEqual(counts.has("K Prime"), false);
+  assert.strictEqual(counts.has("K Prime Minister"), false);
+  assert.strictEqual(counts.has("U Council"), false);
+});
+
 if (failures > 0) {
   console.error(`${failures} test(s) failed`);
   process.exit(1);

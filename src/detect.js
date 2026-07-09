@@ -74,11 +74,19 @@ window.NT = window.NT || {};
         const normalized = tok.replace(TRAILING_POSSESSIVE_RE, "");
         if (normalized && CAP_TOKEN_RE.test(normalized)) {
           run.push(normalized);
-        } else if (tok === "." && /^[A-Z]$/.test(run[run.length - 1])) {
+        } else if (
+          tok === "." &&
+          /^[A-Z]$/.test(run[run.length - 1]) &&
+          run.some((t) => t.length > 1 && !STOPWORDS.has(t))
+        ) {
           // Middle-initial period, e.g. the "." in "Samuel L. Jackson" —
           // transparent to the run so it continues into the next
           // capitalized token(s) instead of splitting the name in two.
-          // The period itself is not added to the run.
+          // The period itself is not added to the run. Requiring a real
+          // name token earlier in the run (not just another initial or a
+          // sentence-initial stopword like "The") keeps this from treating
+          // tight abbreviations like "U.S." or "E.U." as name continuations
+          // ("U.S. Officials" must not become one run with "Officials").
         } else {
           flush();
           if (
